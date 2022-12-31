@@ -3,6 +3,7 @@
 #include <fstream>
 #include <cassert>
 #include <cstring>
+#include <vector>
 
 using namespace std;
 
@@ -129,7 +130,7 @@ bool valid_solution(const char* sol, char **m, int height, int width){
     else
       return false;
     sol++;
-    cout << "(" << r << ", " << c << ") gives: '" << m[r][c] << "'" << endl;
+
     if (m[r][c] == ' '){
       continue;
     }
@@ -144,64 +145,80 @@ bool valid_solution(const char* sol, char **m, int height, int width){
 
 vector<char> valid_moves(char **m, int r, int c, const char end){
   vector<char> directions;
-  if (m[r-1][c] == ' ' || m[r-1][c] == end){
+  if (m[r-1][c] == end){
+    directions.push_back('N');
+    return directions;
+  }
+  else if (m[r+1][c] == end){
+    directions.push_back('S');
+    return directions;
+  }
+  else if (m[r][c+1] == end){
+    directions.push_back('E');
+    return directions;
+  }
+  else if (m[r][c-1] == end){
+    directions.push_back('W');
+    return directions;
+  }
+  if (m[r-1][c] == ' '){
     directions.push_back('N');
   }
-  if (m[r+1][c] == ' ' || m[r+1][c] == end){
+  if (m[r+1][c] == ' '){
     directions.push_back('S');
   }
-  if (m[r][c+1] == ' ' || m[r][c+1] == end){
+  if (m[r][c+1] == ' '){
     directions.push_back('E');
   }
-  if (m[r][c-1] == ' ' || m[r][c-1] == end){
+  if (m[r][c-1] == ' '){
     directions.push_back('W');
   }
   return directions;
 }
 
-char* find_path(char **m, int height, int width, const char start, const char end){
-  char* sol;
+string find_path(char **m, int height, int width, const char start, const char end){
+  string sol;
   int r, c;
   if (!find_marker(start, m, height, width, r, c))
     return "no solution";
-  m[r][c] = '#';
   vector<char> moves = valid_moves(m, r, c, end);
-  for (int i = 0; i < moves.size(); i++){
-    while (moves[i] == 'N'){
-      vector<char> next = valid_moves(m, r-1, c, end);
-      if (next.size() == 1 && next[0] == 'N'){
-	r--;
-      }
-      else{
-	m[r][c] = start;
-	char* res = find_path(m, height, width, start, end);
-	if (!strcmp(res, "no solution")){
-	  break;
-	}
-	else{
-	  sol = strcat(sol, res);
-	  while (m[r][c] == ' '){
-	    m[r][c] = '#';
-	    r--;
-	  }
-	}
-      }
-    }
-    // others
+  if (moves.size() == 0){
+    return "no solution";
   }
-  return sol;
-}
-    
-
-int main(){
-  int height, width, row, column;
-  char **maze = load_maze("test.txt", height, width);
-  bool success = find_marker('X', maze, height, width, row, column);
-  if (success)
-    cout << row << column << endl;
-
-  cout << "A path through the maze from ’>’ to ’X’ is: ";
-  cout << find_path(maze, height, width, '>', 'X') << endl;
-  print_maze(maze, height, width);
-  return 0;
+  for (int i = 0; i < moves.size(); i++){
+    m[r][c] = '#';
+    sol = moves[i];
+    int r_n, c_n;
+    if (moves[i] == 'N'){
+      r_n = r - 1;
+      c_n = c;
+    }
+    else if (moves[i] == 'S'){
+      r_n = r + 1;
+      c_n = c;
+    }
+    else if (moves[i] == 'E'){
+      r_n = r;
+      c_n = c + 1;
+    }
+    else{
+      r_n = r;
+      c_n = c - 1;
+    }
+    if (m[r_n][c_n] == end){
+      m[r_n][c_n] = '#';
+      return "";
+    }
+    m[r_n][c_n] = start;
+    string path = find_path(m, height, width, start, end);
+    if (path != "no solution"){
+      sol += path;
+      return sol;
+    }
+    else{
+      m[r][c] = start;
+      m[r_n][c_n] = ' ';
+    }
+  }
+  return "no solution";
 }
