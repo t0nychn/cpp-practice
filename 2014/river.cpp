@@ -63,6 +63,31 @@ void filter(char *line) {
   }
 }
 
+bool add_to_scene_1(char ** scene, int row, int col, const char* file){
+  ifstream in(file);
+
+  if (!in){
+    return false;
+  }
+  char line[500];
+  in.getline(line, 499);
+  filter(line);
+  int start_col = col;
+  while (!in.eof()){
+    for (int i=0; line[i]; i++){
+      if (row >= SCENE_HEIGHT)
+	return false;
+      if (col >= SCENE_WIDTH)
+	break;
+      scene[row][col++] = line[i];
+    }
+    row++;
+    col = start_col;
+    in.getline(line, 499);
+  }
+  return true;
+}
+
 /* pre-supplied function which inserts an ASCII-art drawing stored in a file
    into a given ASCII-art scene starting at coordinates (row,col)  */
 bool add_to_scene(char **scene, int row, int col, const char *filename) {
@@ -121,10 +146,10 @@ char** make_river_scene(string left, string boat){
   if (left.size() > 7 || boat.size() > 2 )
     return scene;
   // <-- init -->
-  add_to_scene(scene, 0, 0, "bank.txt");
-  add_to_scene(scene, 0, 53, "bank.txt");
-  add_to_scene(scene, 3, 30, "sun.txt");
-  add_to_scene(scene, 19, 19, "river.txt");
+  add_to_scene_1(scene, 0, 0, "bank.txt");
+  add_to_scene_1(scene, 0, 53, "bank.txt");
+  add_to_scene_1(scene, 3, 30, "sun.txt");
+  add_to_scene_1(scene, 19, 19, "river.txt");
 
   int mr, mc, cr, cc, br, bc, m, c;
   mr = 2;
@@ -190,13 +215,24 @@ char** make_river_scene(string left, string boat){
   return scene;
 }
 
+bool boat_left(char *left){
+  while (*left){
+    if (*left == 'B')
+      return true;
+    left++;
+  }
+  return false;
+}
+
 int perform_crossing(char *left, string targets){
+  cout << left << endl;
   if (targets.size() > 2 || targets.size() == 0)
     return ERROR_INVALID_MOVE;
   char new_left[10];
   int m, c, k;
   m = c = k = 0;
-  bool boat_left;
+  bool b_left = boat_left(left);
+  char** scene;
   
   for (int i = 0; i < targets.size(); i++){
     if (targets[i] == 'M')
@@ -204,41 +240,51 @@ int perform_crossing(char *left, string targets){
     else if (targets[i] == 'C')
       c++;
   }
-  for (int i = 0; left[i]; i++){
-    if (left[i] == 'M' || left[i] == 'B'){
-      if (left[i] == 'M' && m > 0){
-	m--;
+  if (b_left){
+    for (int i = 0; left[i]; i++){
+      if (left[i] == 'M'){
+	if (left[i] == 'M' && m > 0){
+	  m--;
+	}
+	else
+	  new_left[k++] = 'M';
       }
-      else if (left[i] == 'B'){
-	boat_left = true;
+      else if (left[i] == 'C'){
+	if (c > 0){
+	  c--;
+	}
+	else
+	  new_left[k++] = 'C';
       }
-      else
-	new_left[k++] = 'M';
     }
-    else if (left[i] == 'C'){
-      if (c > 0){
-	c--;
-      }
-      else
-	new_left[k++] = 'C';
-    }
-  }
-	
-  if (boat_left)
     new_left[k] = 'B';
+    scene = make_river_scene(new_left, targets);
+  }
   else
-    new_left[k] = '\0';
-  char** scene = make_river_scene(new_left, targets);
+    scene = make_river_scene(left, targets);
+       
   cout << "Loading the boat.." << endl;
   print_scene(scene);
 
-  if (boat_left)
+  if (b_left){
     new_left[k] = '\0';
-  strcpy(left, new_left);
+    strcpy(left, new_left);
+  }
+  else{
+    left[strlen(left)-1] = 'B';
+    left[strlen(left)] = '\0';
+  }
   
   cout << "Crossing the river..." << endl;
   scene = make_river_scene(left, targets);
   print_scene(scene);
+
+  if (!b_left){
+    for (int i=0; targets[i]; i++){
+      left[strlen(left)] = targets[0];
+    }
+    left[strlen(left)] = '\0';
+  }
   
   cout << "Unloading the boat..." << endl;
   scene = make_river_scene(left, "");
@@ -250,9 +296,9 @@ int perform_crossing(char *left, string targets){
     else if (left[i] == 'C')
       c++;
   }
-  if (c > m || c == m)
+  if (c < m || 3-c < 3-m ||  c == m)
     return VALID_NONGOAL_STATE;
-  if (c < m)
+  if (c > m || 3-c > 3-m)
     return ERROR_MISSIONARIES_EATEN;
   if (c == 0 && m == 0)
     return VALID_GOAL_STATE;
@@ -261,13 +307,16 @@ int perform_crossing(char *left, string targets){
 void play_game(){
   int code = VALID_NONGOAL_STATE;
   cout << "<-- GAME BEGINS! -->" << endl;
-  print_scene(make_river_scene("MMMCCCB", ""));
-  char left[10] = "MMMCCC";
+  char left[10] = "MMMCCCB";
+  print_scene(make_river_scene(left, ""));
   while (code != ERROR_MISSIONARIES_EATEN && code != VALID_GOAL_STATE){
     char boat[3];
     cout << "Enter boat load:" << endl;
     cin >> boat;
     code = perform_crossing(left, boat);
+    if (code == ERROR_INVALID_MOVE){
+      cout << status_description(code) << endl;
+    }
   }
   cout << status_description(code) << endl;
   return;
