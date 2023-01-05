@@ -211,33 +211,55 @@ void update(char **board, const char ch, Mask &mask){
 }
 
 void neighbourhood_intersect(Mask &one, Mask &two){
-  one = one.neighbourhood() * two.neighbourhood();
-  two = one;
+  one *= two.neighbourhood();
+  two *= one.neighbourhood();
   return;
 }
 
-bool solve_board_recur(char **board, char **words, Mask masks[25]){
-  return false; // not ready, seg fault
-  int i = 0;
-  while (words[i]){
-    for (int j=0; j<(int) strlen(words[i]) -1; j++){
-      neighbourhood_intersect(masks[words[i][j]-'A'], masks[words[i][j+1]-'A']);
-      update(board, words[i][j], masks[words[i][j]-'A']);
-      update(board, words[i][j+1], masks[words[i][j+1]-'A']);
-      if (valid_solution(board, words))
-	  return true;
+/*
+bool solve_remaining(char** board, Mask masks[25], char **words){
+  for (int i=0; i<25; i++){
+    if (masks[i].count() > 1){
+      for (int r=0; r<5; r++){
+	for (int c=0; c<5; c++){
+	  if (board[r][c] == '.'){
+	    board[r][c] = 'A' + i;
+	    update(board, 'A' + i, masks[i]);
+	    if (!solve_remaining(board, masks, words)){
+	      board[r][c] = '.';
+	      update(board, 'A' + i, masks[i]);
+	      return false;
+	    }
+	  }
+	}
+      }
     }
-    i++;
   }
-  return solve_board_recur(board, words, masks);
+  return valid_solution(board, words);
 }
+*/	  
 
 bool solve_board(char **board, char** words){
   Mask masks[25];
   for (int i=0; i<25; i++){
     masks[i].set_all(false);
     update(board, 'A'+i, masks[i]);
+    //masks[i].print();
+    //cout << endl;
   }
-  return solve_board_recur(board, words, masks);
+  for (int i=0; words[i]; i++){
+    for (int j=0; j<(int) strlen(words[i]) -1; j++){
+      neighbourhood_intersect(masks[words[i][j]-'A'], masks[words[i][j+1]-'A']);
+      //masks[words[i][j]-'A'].print();
+      //cout << endl;
+    }
+  }
+  for (int i=0; i<25; i++){
+    update(board, 'A'+i, masks[i]);
+  }
+  if (valid_solution(board, words))
+    return true;
+  else
+    return solve_board(board, words);
 }
 
