@@ -10,3 +10,8 @@ enum MessageStatus {
 /* generates the SHA1 hash of input string text into output parameter digest */
 void text_to_SHA1_digest(const char *text, char *digest);
 
+using std::string;
+int leading_zeros(const char* digest);
+bool file_to_SHA1_digest(const char *file, char* digest);
+bool make_header(string r, const char* file, char *header);
+MessageStatus check_header(string address, string header, const char *file);
