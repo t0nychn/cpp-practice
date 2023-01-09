@@ -59,10 +59,15 @@ bool display_chain(const char* chain[], ostream &out){
 }
 
 bool valid_chain(const char* chain[]){
+  if (chain[1] == NULL)
+    return false;
   for (int i=0; chain[i+1]!=NULL; i++){
-    cout << chain[i] << endl;
     if (!valid_step(chain[i], chain[i+1]))
       return false;
+    for (int j=0; chain[j]; j++){
+      if (!strcmp(chain[i], chain[j]) && i != j)
+	return false;
+    }
   }
   return true;
 }
@@ -89,9 +94,18 @@ const char* insert(string word, int i, char ch){
 }
 
 void add_to_chain(const char* answer_chain[], int i, string word){
-  cout << "Receiving request for: " << word << " at position" << i << endl;
-  answer_chain[i] = word.c_str();
+  char *ptr = new char[100];
+  strcpy(ptr, word.c_str());
+  answer_chain[i] = ptr;
   return;
+}
+
+bool in_chain(const char* answer_chain[], const char* word){
+  for (int i=0; answer_chain[i]; i++){
+    if (!strcmp(answer_chain[i], word))
+      return true;
+  }
+  return false;
 }
 
 bool find_chain_recur(const char* start, const char* target, const char* answer_chain[], int max_steps, int ind){
@@ -110,8 +124,8 @@ bool find_chain_recur(const char* start, const char* target, const char* answer_
       for (int a=0; a<25; a++){
 	const char* try_start = insert(start, i, 'A'+a);
 	if (find_chain_recur(try_start, target, answer_chain, max_steps-1, ind+1)){
-	  add_to_chain(answer_chain, ind, try_start);
-	  cout << try_start << endl;
+	  if (!in_chain(answer_chain, try_start))
+	    add_to_chain(answer_chain, ind, try_start);
 	  return true;
 	}
       }
@@ -121,6 +135,7 @@ bool find_chain_recur(const char* start, const char* target, const char* answer_
 }
 
 bool find_chain(const char* start, const char* target, const char* answer_chain[], int max_steps){
+  flush_chain(answer_chain);
   bool success = find_chain_recur(start, target, answer_chain, max_steps, 1);
   if (success)
     add_to_chain(answer_chain, 0, start);
